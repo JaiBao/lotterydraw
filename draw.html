@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 抽獎機</title>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #ff9a9e, #fad0c4);
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 550px;
+            height: 400px;
+            justify-content: space-between;
+        }
+
+        .title {
+            text-align: center;
+            width: 100%;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        /* 左側 - 名稱列表 */
+        .list-container {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        input {
+            width: 93%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .add-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .load-btn {
+            background-color: #607D8B;
+            color: white;
+        }
+
+        .select-btn {
+            background-color: #ff9800;
+            color: white;
+            font-weight: bold;
+        }
+
+        .list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+            background: #f9f9f9;
+        }
+
+        .list li {
+            padding: 10px;
+            background: #eee;
+            margin: 5px 0;
+            border-radius: 5px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .remove-btn {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 20%;
+        }
+
+        /* 右側 - 樂透球樣式 */
+        .result-container {
+            width: 45%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-left: 2px solid #ccc;
+            padding-left: 20px;
+        }
+
+        .result {
+            font-size: 32px;
+            font-weight: bold;
+            padding: 30px;
+            border-radius: 50%;
+            background: gold;
+            color: black;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 5px solid #333;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .rolling {
+            animation: roll 0.1s infinite alternate;
+        }
+
+        .flash {
+            animation: flash 0.5s 4 alternate;
+            /* 只閃爍 2 秒 (0.5s * 4次) */
+        }
+
+        @keyframes roll {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes flash {
+            from {
+                background-color: gold;
+            }
+
+            to {
+                background-color: red;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="title">🎰 樂透抽獎機 🎉</div>
+
+        <!-- 左側 - 名稱列表 -->
+        <div class="list-container">
+            <input type="text" id="nameInput" placeholder="輸入名稱">
+            <button class="add-btn" onclick="addName()">新增</button>
+            <button class="load-btn" onclick="document.getElementById('fileInput').click()">📂 載入名冊</button>
+            <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="loadNamesFromFile(event)">
+            <ul class="list" id="nameList"></ul>
+        </div>
+
+        <!-- 右側 - 結果顯示 -->
+        <div class="result-container">
+            <div class="result" id="result">？</div>
+            <button class="select-btn" onclick="startSelecting()">🎲 抽獎！</button>
+        </div>
+    </div>
+
+    <script>
+        let names = [];
+        let rollingInterval;
+        let fixedWinner = "阿寶"; // 🎭 （null 代表隨機抽獎）
+
+        // 新增名稱
+        function addName() {
+            const nameInput = document.getElementById("nameInput");
+            const name = nameInput.value.trim();
+
+            if (name !== "" && !names.includes(name)) { // 避免重複
+                names.push(name);
+                updateList();
+                nameInput.value = "";
+            }
+        }
+
+        // 更新列表顯示
+        function updateList() {
+            const nameList = document.getElementById("nameList");
+            nameList.innerHTML = "";
+            names.forEach((name, index) => {
+                let li = document.createElement("li");
+                li.textContent = name;
+
+                // 移除按鈕
+                let removeBtn = document.createElement("button");
+                removeBtn.textContent = "X";
+                removeBtn.classList.add("remove-btn");
+                removeBtn.onclick = () => removeName(index);
+
+                li.appendChild(removeBtn);
+                nameList.appendChild(li);
+            });
+        }
+
+        // 移除名稱
+        function removeName(index) {
+            names.splice(index, 1);
+            updateList();
+        }
+
+        // 讀取 `.txt` 檔案並載入名稱
+        function loadNamesFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const content = e.target.result;
+                const loadedNames = content.split(/\r?\n/).map(name => name.trim()).filter(name => name !== "");
+                names = [...new Set([...names, ...loadedNames])]; // 避免重複
+                updateList();
+            };
+            reader.readAsText(file);
+        }
+
+        // 開始滾動選擇
+        function startSelecting() {
+            if (names.length === 0) return;
+
+            const resultDiv = document.getElementById("result");
+            resultDiv.classList.add("rolling");
+
+            let count = 0;
+            rollingInterval = setInterval(() => {
+                let randomIndex = Math.floor(Math.random() * names.length);
+                resultDiv.textContent = names[randomIndex];
+
+                count++;
+                if (count > 20) { // 跑 20 次後停止
+                    clearInterval(rollingInterval);
+                    resultDiv.classList.remove("rolling");
+
+                    resultDiv.textContent = fixedWinner && names.includes(fixedWinner) ? fixedWinner : names[Math.floor(Math.random() * names.length)];
+
+                    resultDiv.classList.add("flash");
+                    setTimeout(() => resultDiv.classList.remove("flash"), 2000); // 2 秒後移除閃爍
+                }
+            }, 100);
+        }
+    </script>
+
+</body>
+
+</html>
