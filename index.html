@@ -12,7 +12,9 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(to bottom, #ff9a9e, #fad0c4);
+            background: linear-gradient(to bottom, #ff9a9e, #f31520);
+            /* background: url('/img/background.gif') no-repeat center center fixed;
+            background-size: cover; */
         }
 
         .container {
@@ -83,6 +85,11 @@
             font-weight: bold;
         }
 
+        .select-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
         .list {
             list-style: none;
             padding: 0;
@@ -123,7 +130,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             border-left: 2px solid #ccc;
             padding-left: 20px;
         }
@@ -150,7 +157,6 @@
 
         .flash {
             animation: flash 0.5s 4 alternate;
-            /* 只閃爍 2 秒 (0.5s * 4次) */
         }
 
         @keyframes roll {
@@ -199,21 +205,19 @@
     <script>
         let names = [];
         let rollingInterval;
-        let fixedWinner = "阿寶"; // 🎭 （null 代表隨機抽獎）
+        let fixedWinner = "阿寶"; // 🎭 
 
-        // 新增名稱
         function addName() {
             const nameInput = document.getElementById("nameInput");
             const name = nameInput.value.trim();
 
-            if (name !== "" && !names.includes(name)) { // 避免重複
+            if (name !== "" && !names.includes(name)) {
                 names.push(name);
                 updateList();
                 nameInput.value = "";
             }
         }
 
-        // 更新列表顯示
         function updateList() {
             const nameList = document.getElementById("nameList");
             nameList.innerHTML = "";
@@ -221,7 +225,6 @@
                 let li = document.createElement("li");
                 li.textContent = name;
 
-                // 移除按鈕
                 let removeBtn = document.createElement("button");
                 removeBtn.textContent = "X";
                 removeBtn.classList.add("remove-btn");
@@ -232,13 +235,11 @@
             });
         }
 
-        // 移除名稱
         function removeName(index) {
             names.splice(index, 1);
             updateList();
         }
 
-        // 讀取 `.txt` 檔案並載入名稱
         function loadNamesFromFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -247,33 +248,42 @@
             reader.onload = function (e) {
                 const content = e.target.result;
                 const loadedNames = content.split(/\r?\n/).map(name => name.trim()).filter(name => name !== "");
-                names = [...new Set([...names, ...loadedNames])]; // 避免重複
-                updateList();
+
+                if (loadedNames.length > 0) {
+                    names = loadedNames; // 覆蓋 `names` 陣列
+                    updateList();
+                }
+
+                // **強制重置 file input，確保可以載入相同檔案**
+                event.target.value = "";
             };
             reader.readAsText(file);
         }
 
-        // 開始滾動選擇
+
         function startSelecting() {
             if (names.length === 0) return;
 
+            document.querySelector(".select-btn").disabled = true;
             const resultDiv = document.getElementById("result");
             resultDiv.classList.add("rolling");
 
             let count = 0;
             rollingInterval = setInterval(() => {
-                let randomIndex = Math.floor(Math.random() * names.length);
-                resultDiv.textContent = names[randomIndex];
+                resultDiv.textContent = names[Math.floor(Math.random() * names.length)];
 
                 count++;
-                if (count > 20) { // 跑 20 次後停止
+                if (count > 20) {
                     clearInterval(rollingInterval);
                     resultDiv.classList.remove("rolling");
 
                     resultDiv.textContent = fixedWinner && names.includes(fixedWinner) ? fixedWinner : names[Math.floor(Math.random() * names.length)];
 
                     resultDiv.classList.add("flash");
-                    setTimeout(() => resultDiv.classList.remove("flash"), 2000); // 2 秒後移除閃爍
+                    setTimeout(() => {
+                        resultDiv.classList.remove("flash");
+                        document.querySelector(".select-btn").disabled = false;
+                    }, 2000);
                 }
             }, 100);
         }
