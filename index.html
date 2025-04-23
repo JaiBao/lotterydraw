@@ -279,10 +279,12 @@
                     resultDiv.classList.remove("rolling");
 
                     let winner;
+                    // 只有在還沒顯示過固定贏家且名單中有固定贏家時才使用固定贏家
                     if (!hasFixedWinnerShown && fixedWinner && names.includes(fixedWinner)) {
                         winner = fixedWinner;
                         hasFixedWinnerShown = true;
                     } else {
+                        // 否則完全隨機選擇
                         winner = names[Math.floor(Math.random() * names.length)];
                     }
 
